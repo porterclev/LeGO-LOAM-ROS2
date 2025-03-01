@@ -48,7 +48,8 @@ const float RAD2DEG = 180.0 / M_PI;
 
 FeatureAssociation::FeatureAssociation(const std::string &name, Channel<ProjectionOut> &input_channel,
                                        Channel<AssociationOut> &output_channel)
-    : Node(name), _input_channel(input_channel), _output_channel(output_channel) {
+    : Node(name), _input_channel(input_channel), _output_channel(output_channel)
+{
 
   pubCornerPointsSharp = this->create_publisher<sensor_msgs::msg::PointCloud2>("/laser_cloud_sharp", 1);
   pubCornerPointsLessSharp = this->create_publisher<sensor_msgs::msg::PointCloud2>("/laser_cloud_less_sharp", 1);
@@ -65,14 +66,14 @@ FeatureAssociation::FeatureAssociation(const std::string &name, Channel<Projecti
   _cycle_count = 0;
 
   // Declare parameters
-#if defined(USE_GALACTIC_VERSION) || defined(USE_HUMBLE_VERSION) || defined(USE_IRON_VERSION)
-  this->declare_parameter(PARAM_VERTICAL_SCANS,rclcpp::PARAMETER_INTEGER );
-  this->declare_parameter(PARAM_HORIZONTAL_SCANS,rclcpp::PARAMETER_INTEGER );
-  this->declare_parameter(PARAM_SCAN_PERIOD,rclcpp::PARAMETER_DOUBLE );
-  this->declare_parameter(PARAM_FREQ_DIVIDER,rclcpp::PARAMETER_INTEGER );
-  this->declare_parameter(PARAM_EDGE_THRESHOLD,rclcpp::PARAMETER_DOUBLE );
-  this->declare_parameter(PARAM_SURF_THRESHOLD,rclcpp::PARAMETER_DOUBLE );
-  this->declare_parameter(PARAM_DISTANCE,rclcpp::PARAMETER_DOUBLE );
+#if defined(USE_JAZZY_VERSION) || defined(USE_GALACTIC_VERSION) || defined(USE_HUMBLE_VERSION) || defined(USE_IRON_VERSION)
+  this->declare_parameter(PARAM_VERTICAL_SCANS, rclcpp::PARAMETER_INTEGER);
+  this->declare_parameter(PARAM_HORIZONTAL_SCANS, rclcpp::PARAMETER_INTEGER);
+  this->declare_parameter(PARAM_SCAN_PERIOD, rclcpp::PARAMETER_DOUBLE);
+  this->declare_parameter(PARAM_FREQ_DIVIDER, rclcpp::PARAMETER_INTEGER);
+  this->declare_parameter(PARAM_EDGE_THRESHOLD, rclcpp::PARAMETER_DOUBLE);
+  this->declare_parameter(PARAM_SURF_THRESHOLD, rclcpp::PARAMETER_DOUBLE);
+  this->declare_parameter(PARAM_DISTANCE, rclcpp::PARAMETER_DOUBLE);
 #else
   this->declare_parameter(PARAM_VERTICAL_SCANS, 2);
   this->declare_parameter(PARAM_HORIZONTAL_SCANS, 2);
@@ -86,33 +87,40 @@ FeatureAssociation::FeatureAssociation(const std::string &name, Channel<Projecti
   float nearest_dist;
 
   // Read parameters
-  if (!this->get_parameter(PARAM_VERTICAL_SCANS, _vertical_scans)) {
+  if (!this->get_parameter(PARAM_VERTICAL_SCANS, _vertical_scans))
+  {
     RCLCPP_WARN(this->get_logger(), "Parameter %s not found", PARAM_VERTICAL_SCANS.c_str());
   }
-  if (!this->get_parameter(PARAM_HORIZONTAL_SCANS, _horizontal_scans)) {
+  if (!this->get_parameter(PARAM_HORIZONTAL_SCANS, _horizontal_scans))
+  {
     RCLCPP_WARN(this->get_logger(), "Parameter %s not found", PARAM_HORIZONTAL_SCANS.c_str());
   }
-  if (!this->get_parameter(PARAM_SCAN_PERIOD, _scan_period)) {
+  if (!this->get_parameter(PARAM_SCAN_PERIOD, _scan_period))
+  {
     RCLCPP_WARN(this->get_logger(), "Parameter %s not found", PARAM_SCAN_PERIOD.c_str());
   }
-  if (!this->get_parameter(PARAM_FREQ_DIVIDER, _mapping_frequency_div)) {
+  if (!this->get_parameter(PARAM_FREQ_DIVIDER, _mapping_frequency_div))
+  {
     RCLCPP_WARN(this->get_logger(), "Parameter %s not found", PARAM_FREQ_DIVIDER.c_str());
   }
-  if (!this->get_parameter(PARAM_EDGE_THRESHOLD, _edge_threshold)) {
+  if (!this->get_parameter(PARAM_EDGE_THRESHOLD, _edge_threshold))
+  {
     RCLCPP_WARN(this->get_logger(), "Parameter %s not found", PARAM_EDGE_THRESHOLD.c_str());
   }
-  if (!this->get_parameter(PARAM_SURF_THRESHOLD, _surf_threshold)) {
+  if (!this->get_parameter(PARAM_SURF_THRESHOLD, _surf_threshold))
+  {
     RCLCPP_WARN(this->get_logger(), "Parameter %s not found", PARAM_SURF_THRESHOLD.c_str());
   }
-  if (!this->get_parameter(PARAM_DISTANCE, nearest_dist)) {
+  if (!this->get_parameter(PARAM_DISTANCE, nearest_dist))
+  {
     RCLCPP_WARN(this->get_logger(), "Parameter %s not found", PARAM_DISTANCE.c_str());
   }
 
-  _nearest_feature_dist_sqr = nearest_dist*nearest_dist;
+  _nearest_feature_dist_sqr = nearest_dist * nearest_dist;
 
   initializationValue();
 
- _run_thread = std::thread (&FeatureAssociation::runFeatureAssociation, this);
+  _run_thread = std::thread(&FeatureAssociation::runFeatureAssociation, this);
 }
 
 FeatureAssociation::~FeatureAssociation()
@@ -121,7 +129,8 @@ FeatureAssociation::~FeatureAssociation()
   _run_thread.join();
 }
 
-void FeatureAssociation::initializationValue() {
+void FeatureAssociation::initializationValue()
+{
   const size_t cloud_size = _vertical_scans * _horizontal_scans;
   cloudSmoothness.resize(cloud_size);
 
@@ -151,7 +160,8 @@ void FeatureAssociation::initializationValue() {
 
   skipFrameNum = 1;
 
-  for (int i = 0; i < 6; ++i) {
+  for (int i = 0; i < 6; ++i)
+  {
     transformCur[i] = 0;
     transformSum[i] = 0;
   }
@@ -174,26 +184,32 @@ void FeatureAssociation::initializationValue() {
   frameCount = skipFrameNum;
 }
 
-void FeatureAssociation::adjustDistortion() {
+void FeatureAssociation::adjustDistortion()
+{
   bool halfPassed = false;
   int cloudSize = segmentedCloud->points.size();
 
   PointType point;
 
-  for (int i = 0; i < cloudSize; i++) {
+  for (int i = 0; i < cloudSize; i++)
+  {
     point.x = segmentedCloud->points[i].y;
     point.y = segmentedCloud->points[i].z;
     point.z = segmentedCloud->points[i].x;
 
     float ori = -atan2(point.x, point.z);
-    if (!halfPassed) {
+    if (!halfPassed)
+    {
       if (ori < segInfo.start_orientation - M_PI / 2)
         ori += 2 * M_PI;
       else if (ori > segInfo.start_orientation + M_PI * 3 / 2)
         ori -= 2 * M_PI;
 
-      if (ori - segInfo.start_orientation > M_PI) halfPassed = true;
-    } else {
+      if (ori - segInfo.start_orientation > M_PI)
+        halfPassed = true;
+    }
+    else
+    {
       ori += 2 * M_PI;
 
       if (ori < segInfo.end_orientation - M_PI * 3 / 2)
@@ -210,9 +226,11 @@ void FeatureAssociation::adjustDistortion() {
   }
 }
 
-void FeatureAssociation::calculateSmoothness() {
+void FeatureAssociation::calculateSmoothness()
+{
   int cloudSize = segmentedCloud->points.size();
-  for (int i = 5; i < cloudSize - 5; i++) {
+  for (int i = 5; i < cloudSize - 5; i++)
+  {
     float diffRange = segInfo.segmented_cloud_range[i - 5] +
                       segInfo.segmented_cloud_range[i - 4] +
                       segInfo.segmented_cloud_range[i - 3] +
@@ -235,24 +253,30 @@ void FeatureAssociation::calculateSmoothness() {
   }
 }
 
-void FeatureAssociation::markOccludedPoints() {
+void FeatureAssociation::markOccludedPoints()
+{
   int cloudSize = segmentedCloud->points.size();
 
-  for (int i = 5; i < cloudSize - 6; ++i) {
+  for (int i = 5; i < cloudSize - 6; ++i)
+  {
     float depth1 = segInfo.segmented_cloud_range[i];
     float depth2 = segInfo.segmented_cloud_range[i + 1];
     int columnDiff = std::abs(int(segInfo.segmented_cloud_col_ind[i + 1] -
                                   segInfo.segmented_cloud_col_ind[i]));
 
-    if (columnDiff < 10) {
-      if (depth1 - depth2 > 0.3) {
+    if (columnDiff < 10)
+    {
+      if (depth1 - depth2 > 0.3)
+      {
         cloudNeighborPicked[i - 5] = 1;
         cloudNeighborPicked[i - 4] = 1;
         cloudNeighborPicked[i - 3] = 1;
         cloudNeighborPicked[i - 2] = 1;
         cloudNeighborPicked[i - 1] = 1;
         cloudNeighborPicked[i] = 1;
-      } else if (depth2 - depth1 > 0.3) {
+      }
+      else if (depth2 - depth1 > 0.3)
+      {
         cloudNeighborPicked[i + 1] = 1;
         cloudNeighborPicked[i + 2] = 1;
         cloudNeighborPicked[i + 3] = 1;
@@ -262,8 +286,8 @@ void FeatureAssociation::markOccludedPoints() {
       }
     }
 
-    float diff1 = std::abs(float(segInfo.segmented_cloud_range[i-1] - segInfo.segmented_cloud_range[i]));
-    float diff2 = std::abs(float(segInfo.segmented_cloud_range[i+1] - segInfo.segmented_cloud_range[i]));
+    float diff1 = std::abs(float(segInfo.segmented_cloud_range[i - 1] - segInfo.segmented_cloud_range[i]));
+    float diff2 = std::abs(float(segInfo.segmented_cloud_range[i + 1] - segInfo.segmented_cloud_range[i]));
 
     if (diff1 > 0.02 * segInfo.segmented_cloud_range[i] &&
         diff2 > 0.02 * segInfo.segmented_cloud_range[i])
@@ -271,16 +295,19 @@ void FeatureAssociation::markOccludedPoints() {
   }
 }
 
-void FeatureAssociation::extractFeatures() {
+void FeatureAssociation::extractFeatures()
+{
   cornerPointsSharp->clear();
   cornerPointsLessSharp->clear();
   surfPointsFlat->clear();
   surfPointsLessFlat->clear();
 
-  for (int i = 0; i < _vertical_scans; i++) {
+  for (int i = 0; i < _vertical_scans; i++)
+  {
     surfPointsLessFlatScan->clear();
 
-    for (int j = 0; j < 6; j++) {
+    for (int j = 0; j < 6; j++)
+    {
       int sp =
           (segInfo.start_ring_index[i] * (6 - j) + segInfo.end_ring_index[i] * j) /
           6;
@@ -289,95 +316,120 @@ void FeatureAssociation::extractFeatures() {
                    6 -
                1;
 
-      if (sp >= ep) continue;
+      if (sp >= ep)
+        continue;
 
       std::sort(cloudSmoothness.begin() + sp, cloudSmoothness.begin() + ep,
                 by_value());
 
       int largestPickedNum = 0;
-      for (int k = ep; k >= sp; k--) {
+      for (int k = ep; k >= sp; k--)
+      {
         int ind = cloudSmoothness[k].ind;
         if (cloudNeighborPicked[ind] == 0 &&
             cloudCurvature[ind] > _edge_threshold &&
-            segInfo.segmented_cloud_ground_flag[ind] == false) {
+            segInfo.segmented_cloud_ground_flag[ind] == false)
+        {
           largestPickedNum++;
-          if (largestPickedNum <= 2) {
+          if (largestPickedNum <= 2)
+          {
             cloudLabel[ind] = 2;
             cornerPointsSharp->push_back(segmentedCloud->points[ind]);
             cornerPointsLessSharp->push_back(segmentedCloud->points[ind]);
-          } else if (largestPickedNum <= 20) {
+          }
+          else if (largestPickedNum <= 20)
+          {
             cloudLabel[ind] = 1;
             cornerPointsLessSharp->push_back(segmentedCloud->points[ind]);
-          } else {
+          }
+          else
+          {
             break;
           }
 
           cloudNeighborPicked[ind] = 1;
-          for (int l = 1; l <= 5; l++) {
-            if ( ind + l >= static_cast<int>(segInfo.segmented_cloud_col_ind.size()) ) {
+          for (int l = 1; l <= 5; l++)
+          {
+            if (ind + l >= static_cast<int>(segInfo.segmented_cloud_col_ind.size()))
+            {
               continue;
             }
             int columnDiff =
                 std::abs(int(segInfo.segmented_cloud_col_ind[ind + l] -
                              segInfo.segmented_cloud_col_ind[ind + l - 1]));
-            if (columnDiff > 10) break;
+            if (columnDiff > 10)
+              break;
             cloudNeighborPicked[ind + l] = 1;
           }
-          for (int l = -1; l >= -5; l--) {
-            if( ind + l < 0 ) {
+          for (int l = -1; l >= -5; l--)
+          {
+            if (ind + l < 0)
+            {
               continue;
             }
             int columnDiff =
                 std::abs(int(segInfo.segmented_cloud_col_ind[ind + l] -
                              segInfo.segmented_cloud_col_ind[ind + l + 1]));
-            if (columnDiff > 10) break;
+            if (columnDiff > 10)
+              break;
             cloudNeighborPicked[ind + l] = 1;
           }
         }
       }
 
       int smallestPickedNum = 0;
-      for (int k = sp; k <= ep; k++) {
+      for (int k = sp; k <= ep; k++)
+      {
         int ind = cloudSmoothness[k].ind;
         if (cloudNeighborPicked[ind] == 0 &&
             cloudCurvature[ind] < _surf_threshold &&
-            segInfo.segmented_cloud_ground_flag[ind] == true) {
+            segInfo.segmented_cloud_ground_flag[ind] == true)
+        {
           cloudLabel[ind] = -1;
           surfPointsFlat->push_back(segmentedCloud->points[ind]);
 
           smallestPickedNum++;
-          if (smallestPickedNum >= 4) {
+          if (smallestPickedNum >= 4)
+          {
             break;
           }
 
           cloudNeighborPicked[ind] = 1;
-          for (int l = 1; l <= 5; l++) {
-            if ( ind + l >= static_cast<int>(segInfo.segmented_cloud_col_ind.size()) ) {
+          for (int l = 1; l <= 5; l++)
+          {
+            if (ind + l >= static_cast<int>(segInfo.segmented_cloud_col_ind.size()))
+            {
               continue;
             }
             int columnDiff =
                 std::abs(int(segInfo.segmented_cloud_col_ind.at(ind + l) -
                              segInfo.segmented_cloud_col_ind.at(ind + l - 1)));
-            if (columnDiff > 10) break;
+            if (columnDiff > 10)
+              break;
 
             cloudNeighborPicked[ind + l] = 1;
           }
-          for (int l = -1; l >= -5; l--) {
-            if (ind + l < 0) {
+          for (int l = -1; l >= -5; l--)
+          {
+            if (ind + l < 0)
+            {
               continue;
             }
             int columnDiff =
                 std::abs(int(segInfo.segmented_cloud_col_ind.at(ind + l) -
                              segInfo.segmented_cloud_col_ind.at(ind + l + 1)));
-            if (columnDiff > 10) break;
+            if (columnDiff > 10)
+              break;
 
             cloudNeighborPicked[ind + l] = 1;
           }
         }
       }
 
-      for (int k = sp; k <= ep; k++) {
-        if (cloudLabel[k] <= 0) {
+      for (int k = sp; k <= ep; k++)
+      {
+        if (cloudLabel[k] <= 0)
+        {
           surfPointsLessFlatScan->push_back(segmentedCloud->points[k]);
         }
       }
@@ -392,7 +444,8 @@ void FeatureAssociation::extractFeatures() {
 }
 
 void FeatureAssociation::TransformToStart(PointType const *const pi,
-                                          PointType *const po) {
+                                          PointType *const po)
+{
   float s = 10 * (pi->intensity - int(pi->intensity));
 
   float rx = s * transformCur[0];
@@ -417,7 +470,8 @@ void FeatureAssociation::TransformToStart(PointType const *const pi,
 }
 
 void FeatureAssociation::TransformToEnd(PointType const *const pi,
-                                        PointType *const po) {
+                                        PointType *const po)
+{
   float s = 10 * (pi->intensity - int(pi->intensity));
 
   float rx = s * transformCur[0];
@@ -464,10 +518,10 @@ void FeatureAssociation::TransformToEnd(PointType const *const pi,
   po->intensity = int(pi->intensity);
 }
 
-
 void FeatureAssociation::AccumulateRotation(float cx, float cy, float cz,
                                             float lx, float ly, float lz,
-                                            float &ox, float &oy, float &oz) {
+                                            float &ox, float &oy, float &oz)
+{
   float srx = cos(lx) * cos(cx) * sin(ly) * sin(cz) -
               cos(cx) * cos(cz) * sin(lx) - cos(lx) * cos(ly) * sin(cx);
   ox = -asin(srx);
@@ -493,27 +547,33 @@ void FeatureAssociation::AccumulateRotation(float cx, float cy, float cz,
   oz = atan2(srzcrx / cos(ox), crzcrx / cos(ox));
 }
 
-void FeatureAssociation::findCorrespondingCornerFeatures(int iterCount) {
+void FeatureAssociation::findCorrespondingCornerFeatures(int iterCount)
+{
   int cornerPointsSharpNum = cornerPointsSharp->points.size();
 
-  for (int i = 0; i < cornerPointsSharpNum; i++) {
+  for (int i = 0; i < cornerPointsSharpNum; i++)
+  {
     PointType pointSel;
     TransformToStart(&cornerPointsSharp->points[i], &pointSel);
 
-    if (iterCount % 5 == 0) {
+    if (iterCount % 5 == 0)
+    {
       kdtreeCornerLast.nearestKSearch(pointSel, 1, pointSearchInd,
-                                       pointSearchSqDis);
+                                      pointSearchSqDis);
       int closestPointInd = -1, minPointInd2 = -1;
 
-      if (pointSearchSqDis[0] < _nearest_feature_dist_sqr) {
+      if (pointSearchSqDis[0] < _nearest_feature_dist_sqr)
+      {
         closestPointInd = pointSearchInd[0];
         int closestPointScan =
             int(laserCloudCornerLast->points[closestPointInd].intensity);
 
         float pointSqDis, minPointSqDis2 = _nearest_feature_dist_sqr;
-        for (int j = closestPointInd + 1; j < cornerPointsSharpNum; j++) {
+        for (int j = closestPointInd + 1; j < cornerPointsSharpNum; j++)
+        {
           if (int(laserCloudCornerLast->points[j].intensity) >
-              closestPointScan + 2.5) {
+              closestPointScan + 2.5)
+          {
             break;
           }
 
@@ -525,16 +585,20 @@ void FeatureAssociation::findCorrespondingCornerFeatures(int iterCount) {
                            (laserCloudCornerLast->points[j].z - pointSel.z);
 
           if (int(laserCloudCornerLast->points[j].intensity) >
-              closestPointScan) {
-            if (pointSqDis < minPointSqDis2) {
+              closestPointScan)
+          {
+            if (pointSqDis < minPointSqDis2)
+            {
               minPointSqDis2 = pointSqDis;
               minPointInd2 = j;
             }
           }
         }
-        for (int j = closestPointInd - 1; j >= 0; j--) {
+        for (int j = closestPointInd - 1; j >= 0; j--)
+        {
           if (int(laserCloudCornerLast->points[j].intensity) <
-              closestPointScan - 2.5) {
+              closestPointScan - 2.5)
+          {
             break;
           }
 
@@ -546,8 +610,10 @@ void FeatureAssociation::findCorrespondingCornerFeatures(int iterCount) {
                            (laserCloudCornerLast->points[j].z - pointSel.z);
 
           if (int(laserCloudCornerLast->points[j].intensity) <
-              closestPointScan) {
-            if (pointSqDis < minPointSqDis2) {
+              closestPointScan)
+          {
+            if (pointSqDis < minPointSqDis2)
+            {
               minPointSqDis2 = pointSqDis;
               minPointInd2 = j;
             }
@@ -559,7 +625,8 @@ void FeatureAssociation::findCorrespondingCornerFeatures(int iterCount) {
       pointSearchCornerInd2[i] = minPointInd2;
     }
 
-    if (pointSearchCornerInd2[i] >= 0) {
+    if (pointSearchCornerInd2[i] >= 0)
+    {
       PointType tripod1 =
           laserCloudCornerLast->points[pointSearchCornerInd1[i]];
       PointType tripod2 =
@@ -593,11 +660,13 @@ void FeatureAssociation::findCorrespondingCornerFeatures(int iterCount) {
       float ld2 = a012 / l12;
 
       float s = 1;
-      if (iterCount >= 5) {
+      if (iterCount >= 5)
+      {
         s = 1 - 1.8 * fabs(ld2);
       }
 
-      if (s > 0.1 && ld2 != 0) {
+      if (s > 0.1 && ld2 != 0)
+      {
         PointType coeff;
         coeff.x = s * la;
         coeff.y = s * lb;
@@ -611,28 +680,34 @@ void FeatureAssociation::findCorrespondingCornerFeatures(int iterCount) {
   }
 }
 
-void FeatureAssociation::findCorrespondingSurfFeatures(int iterCount) {
+void FeatureAssociation::findCorrespondingSurfFeatures(int iterCount)
+{
   int surfPointsFlatNum = surfPointsFlat->points.size();
 
-  for (int i = 0; i < surfPointsFlatNum; i++) {
+  for (int i = 0; i < surfPointsFlatNum; i++)
+  {
     PointType pointSel;
     TransformToStart(&surfPointsFlat->points[i], &pointSel);
 
-    if (iterCount % 5 == 0) {
+    if (iterCount % 5 == 0)
+    {
       kdtreeSurfLast.nearestKSearch(pointSel, 1, pointSearchInd,
-                                     pointSearchSqDis);
+                                    pointSearchSqDis);
       int closestPointInd = -1, minPointInd2 = -1, minPointInd3 = -1;
 
-      if (pointSearchSqDis[0] < _nearest_feature_dist_sqr) {
+      if (pointSearchSqDis[0] < _nearest_feature_dist_sqr)
+      {
         closestPointInd = pointSearchInd[0];
         int closestPointScan =
             int(laserCloudSurfLast->points[closestPointInd].intensity);
 
         float pointSqDis, minPointSqDis2 = _nearest_feature_dist_sqr,
                           minPointSqDis3 = _nearest_feature_dist_sqr;
-        for (int j = closestPointInd + 1; j < surfPointsFlatNum; j++) {
+        for (int j = closestPointInd + 1; j < surfPointsFlatNum; j++)
+        {
           if (int(laserCloudSurfLast->points[j].intensity) >
-              closestPointScan + 2.5) {
+              closestPointScan + 2.5)
+          {
             break;
           }
 
@@ -644,21 +719,28 @@ void FeatureAssociation::findCorrespondingSurfFeatures(int iterCount) {
                            (laserCloudSurfLast->points[j].z - pointSel.z);
 
           if (int(laserCloudSurfLast->points[j].intensity) <=
-              closestPointScan) {
-            if (pointSqDis < minPointSqDis2) {
+              closestPointScan)
+          {
+            if (pointSqDis < minPointSqDis2)
+            {
               minPointSqDis2 = pointSqDis;
               minPointInd2 = j;
             }
-          } else {
-            if (pointSqDis < minPointSqDis3) {
+          }
+          else
+          {
+            if (pointSqDis < minPointSqDis3)
+            {
               minPointSqDis3 = pointSqDis;
               minPointInd3 = j;
             }
           }
         }
-        for (int j = closestPointInd - 1; j >= 0; j--) {
+        for (int j = closestPointInd - 1; j >= 0; j--)
+        {
           if (int(laserCloudSurfLast->points[j].intensity) <
-              closestPointScan - 2.5) {
+              closestPointScan - 2.5)
+          {
             break;
           }
 
@@ -670,13 +752,18 @@ void FeatureAssociation::findCorrespondingSurfFeatures(int iterCount) {
                            (laserCloudSurfLast->points[j].z - pointSel.z);
 
           if (int(laserCloudSurfLast->points[j].intensity) >=
-              closestPointScan) {
-            if (pointSqDis < minPointSqDis2) {
+              closestPointScan)
+          {
+            if (pointSqDis < minPointSqDis2)
+            {
               minPointSqDis2 = pointSqDis;
               minPointInd2 = j;
             }
-          } else {
-            if (pointSqDis < minPointSqDis3) {
+          }
+          else
+          {
+            if (pointSqDis < minPointSqDis3)
+            {
               minPointSqDis3 = pointSqDis;
               minPointInd3 = j;
             }
@@ -689,7 +776,8 @@ void FeatureAssociation::findCorrespondingSurfFeatures(int iterCount) {
       pointSearchSurfInd3[i] = minPointInd3;
     }
 
-    if (pointSearchSurfInd2[i] >= 0 && pointSearchSurfInd3[i] >= 0) {
+    if (pointSearchSurfInd2[i] >= 0 && pointSearchSurfInd3[i] >= 0)
+    {
       PointType tripod1 = laserCloudSurfLast->points[pointSearchSurfInd1[i]];
       PointType tripod2 = laserCloudSurfLast->points[pointSearchSurfInd2[i]];
       PointType tripod3 = laserCloudSurfLast->points[pointSearchSurfInd3[i]];
@@ -712,14 +800,16 @@ void FeatureAssociation::findCorrespondingSurfFeatures(int iterCount) {
       float pd2 = pa * pointSel.x + pb * pointSel.y + pc * pointSel.z + pd;
 
       float s = 1;
-      if (iterCount >= 5) {
+      if (iterCount >= 5)
+      {
         s = 1 -
             1.8 * fabs(pd2) /
                 sqrt(sqrt(pointSel.x * pointSel.x + pointSel.y * pointSel.y +
                           pointSel.z * pointSel.z));
       }
 
-      if (s > 0.1 && pd2 != 0) {
+      if (s > 0.1 && pd2 != 0)
+      {
         PointType coeff;
         coeff.x = s * pa;
         coeff.y = s * pb;
@@ -733,16 +823,17 @@ void FeatureAssociation::findCorrespondingSurfFeatures(int iterCount) {
   }
 }
 
-bool FeatureAssociation::calculateTransformationSurf(int iterCount) {
+bool FeatureAssociation::calculateTransformationSurf(int iterCount)
+{
   int pointSelNum = laserCloudOri->points.size();
 
-  Eigen::Matrix<float,Eigen::Dynamic,3> matA(pointSelNum, 3);
-  Eigen::Matrix<float,3,Eigen::Dynamic> matAt(3,pointSelNum);
-  Eigen::Matrix<float,3,3> matAtA;
+  Eigen::Matrix<float, Eigen::Dynamic, 3> matA(pointSelNum, 3);
+  Eigen::Matrix<float, 3, Eigen::Dynamic> matAt(3, pointSelNum);
+  Eigen::Matrix<float, 3, 3> matAtA;
   Eigen::VectorXf matB(pointSelNum);
-  Eigen::Matrix<float,3,1> matAtB;
-  Eigen::Matrix<float,3,1> matX;
-  Eigen::Matrix<float,3,3> matP;
+  Eigen::Matrix<float, 3, 1> matAtB;
+  Eigen::Matrix<float, 3, 1> matX;
+  Eigen::Matrix<float, 3, 3> matP;
 
   float srx = sin(transformCur[0]);
   float crx = cos(transformCur[0]);
@@ -781,7 +872,8 @@ bool FeatureAssociation::calculateTransformationSurf(int iterCount) {
   float c8 = -b1;
   float c9 = tx * -b2 - ty * -b1;
 
-  for (int i = 0; i < pointSelNum; i++) {
+  for (int i = 0; i < pointSelNum; i++)
+  {
     PointType pointOri = laserCloudOri->points[i];
     PointType coeff = coeffSel->points[i];
 
@@ -809,33 +901,40 @@ bool FeatureAssociation::calculateTransformationSurf(int iterCount) {
   matAtB = matAt * matB;
   matX = matAtA.colPivHouseholderQr().solve(matAtB);
 
-  if (iterCount == 0) {
-    Eigen::Matrix<float,1,3> matE;
-    Eigen::Matrix<float,3,3> matV;
-    Eigen::Matrix<float,3,3> matV2;
+  if (iterCount == 0)
+  {
+    Eigen::Matrix<float, 1, 3> matE;
+    Eigen::Matrix<float, 3, 3> matV;
+    Eigen::Matrix<float, 3, 3> matV2;
 
-    Eigen::SelfAdjointEigenSolver< Eigen::Matrix<float,3,3> > esolver(matAtA);
+    Eigen::SelfAdjointEigenSolver<Eigen::Matrix<float, 3, 3>> esolver(matAtA);
     matE = esolver.eigenvalues().real();
     matV = esolver.eigenvectors().real();
     matV2 = matV;
 
     isDegenerate = false;
     float eignThre[3] = {10, 10, 10};
-    for (int i = 2; i >= 0; i--) {
-      if (matE(0, i) < eignThre[i]) {
-        for (int j = 0; j < 3; j++) {
+    for (int i = 2; i >= 0; i--)
+    {
+      if (matE(0, i) < eignThre[i])
+      {
+        for (int j = 0; j < 3; j++)
+        {
           matV2(i, j) = 0;
         }
         isDegenerate = true;
-      } else {
+      }
+      else
+      {
         break;
       }
     }
     matP = matV.inverse() * matV2;
   }
 
-  if (isDegenerate) {
-    Eigen::Matrix<float,3,1> matX2;
+  if (isDegenerate)
+  {
+    Eigen::Matrix<float, 3, 1> matX2;
     matX2 = matX;
     matX = matP * matX2;
   }
@@ -844,30 +943,34 @@ bool FeatureAssociation::calculateTransformationSurf(int iterCount) {
   transformCur[2] += matX(1, 0);
   transformCur[4] += matX(2, 0);
 
-  for (int i = 0; i < 6; i++) {
-    if (std::isnan(transformCur[i])) transformCur[i] = 0;
+  for (int i = 0; i < 6; i++)
+  {
+    if (std::isnan(transformCur[i]))
+      transformCur[i] = 0;
   }
 
   float deltaR = sqrt(pow(RAD2DEG * (matX(0, 0)), 2) +
                       pow(RAD2DEG * (matX(1, 0)), 2));
   float deltaT = sqrt(pow(matX(2, 0) * 100, 2));
 
-  if (deltaR < 0.1 && deltaT < 0.1) {
+  if (deltaR < 0.1 && deltaT < 0.1)
+  {
     return false;
   }
   return true;
 }
 
-bool FeatureAssociation::calculateTransformationCorner(int iterCount) {
+bool FeatureAssociation::calculateTransformationCorner(int iterCount)
+{
   int pointSelNum = laserCloudOri->points.size();
 
-  Eigen::Matrix<float,Eigen::Dynamic,3> matA(pointSelNum, 3);
-  Eigen::Matrix<float,3,Eigen::Dynamic> matAt(3,pointSelNum);
-  Eigen::Matrix<float,3,3> matAtA;
+  Eigen::Matrix<float, Eigen::Dynamic, 3> matA(pointSelNum, 3);
+  Eigen::Matrix<float, 3, Eigen::Dynamic> matAt(3, pointSelNum);
+  Eigen::Matrix<float, 3, 3> matAtA;
   Eigen::VectorXf matB(pointSelNum);
-  Eigen::Matrix<float,3,1> matAtB;
-  Eigen::Matrix<float,3,1> matX;
-  Eigen::Matrix<float,3,3> matP;
+  Eigen::Matrix<float, 3, 1> matAtB;
+  Eigen::Matrix<float, 3, 1> matX;
+  Eigen::Matrix<float, 3, 3> matP;
 
   float srx = sin(transformCur[0]);
   float crx = cos(transformCur[0]);
@@ -890,7 +993,8 @@ bool FeatureAssociation::calculateTransformationCorner(int iterCount) {
 
   float c5 = crx * srz;
 
-  for (int i = 0; i < pointSelNum; i++) {
+  for (int i = 0; i < pointSelNum; i++)
+  {
     PointType pointOri = laserCloudOri->points[i];
     PointType coeff = coeffSel->points[i];
 
@@ -915,33 +1019,40 @@ bool FeatureAssociation::calculateTransformationCorner(int iterCount) {
   matAtB = matAt * matB;
   matX = matAtA.colPivHouseholderQr().solve(matAtB);
 
-  if (iterCount == 0) {
-    Eigen::Matrix<float,1, 3> matE;
-    Eigen::Matrix<float,3, 3> matV;
-    Eigen::Matrix<float,3, 3> matV2;
+  if (iterCount == 0)
+  {
+    Eigen::Matrix<float, 1, 3> matE;
+    Eigen::Matrix<float, 3, 3> matV;
+    Eigen::Matrix<float, 3, 3> matV2;
 
-    Eigen::SelfAdjointEigenSolver< Eigen::Matrix<float,3,3> > esolver(matAtA);
+    Eigen::SelfAdjointEigenSolver<Eigen::Matrix<float, 3, 3>> esolver(matAtA);
     matE = esolver.eigenvalues().real();
     matV = esolver.eigenvectors().real();
     matV2 = matV;
 
     isDegenerate = false;
     float eignThre[3] = {10, 10, 10};
-    for (int i = 2; i >= 0; i--) {
-      if (matE(0, i) < eignThre[i]) {
-        for (int j = 0; j < 3; j++) {
+    for (int i = 2; i >= 0; i--)
+    {
+      if (matE(0, i) < eignThre[i])
+      {
+        for (int j = 0; j < 3; j++)
+        {
           matV2(i, j) = 0;
         }
         isDegenerate = true;
-      } else {
+      }
+      else
+      {
         break;
       }
     }
     matP = matV.inverse() * matV2;
   }
 
-  if (isDegenerate) {
-    Eigen::Matrix<float,3,1> matX2;
+  if (isDegenerate)
+  {
+    Eigen::Matrix<float, 3, 1> matX2;
     matX2 = matX;
     matX = matP * matX2;
   }
@@ -950,30 +1061,34 @@ bool FeatureAssociation::calculateTransformationCorner(int iterCount) {
   transformCur[3] += matX(1, 0);
   transformCur[5] += matX(2, 0);
 
-  for (int i = 0; i < 6; i++) {
-    if (std::isnan(transformCur[i])) transformCur[i] = 0;
+  for (int i = 0; i < 6; i++)
+  {
+    if (std::isnan(transformCur[i]))
+      transformCur[i] = 0;
   }
 
   float deltaR = sqrt(pow(RAD2DEG * (matX(0, 0)), 2));
   float deltaT = sqrt(pow(matX(1, 0) * 100, 2) +
                       pow(matX(2, 0) * 100, 2));
 
-  if (deltaR < 0.1 && deltaT < 0.1) {
+  if (deltaR < 0.1 && deltaT < 0.1)
+  {
     return false;
   }
   return true;
 }
 
-bool FeatureAssociation::calculateTransformation(int iterCount) {
+bool FeatureAssociation::calculateTransformation(int iterCount)
+{
   int pointSelNum = laserCloudOri->points.size();
 
-  Eigen::Matrix<float,Eigen::Dynamic,6> matA(pointSelNum, 6);
-  Eigen::Matrix<float,6,Eigen::Dynamic> matAt(6,pointSelNum);
-  Eigen::Matrix<float,6,6> matAtA;
+  Eigen::Matrix<float, Eigen::Dynamic, 6> matA(pointSelNum, 6);
+  Eigen::Matrix<float, 6, Eigen::Dynamic> matAt(6, pointSelNum);
+  Eigen::Matrix<float, 6, 6> matAtA;
   Eigen::VectorXf matB(pointSelNum);
-  Eigen::Matrix<float,6,1> matAtB;
-  Eigen::Matrix<float,6,1> matX;
-  Eigen::Matrix<float,6,6> matP;
+  Eigen::Matrix<float, 6, 1> matAtB;
+  Eigen::Matrix<float, 6, 1> matX;
+  Eigen::Matrix<float, 6, 6> matP;
 
   float srx = sin(transformCur[0]);
   float crx = cos(transformCur[0]);
@@ -1016,7 +1131,8 @@ bool FeatureAssociation::calculateTransformation(int iterCount) {
   float c8 = -b1;
   float c9 = tx * -b2 - ty * -b1;
 
-  for (int i = 0; i < pointSelNum; i++) {
+  for (int i = 0; i < pointSelNum; i++)
+  {
     PointType pointOri = laserCloudOri->points[i];
     PointType coeff = coeffSel->points[i];
 
@@ -1055,33 +1171,40 @@ bool FeatureAssociation::calculateTransformation(int iterCount) {
   matAtB = matAt * matB;
   matX = matAtA.colPivHouseholderQr().solve(matAtB);
 
-  if (iterCount == 0) {
-    Eigen::Matrix<float,1, 6> matE;
-    Eigen::Matrix<float,6, 6> matV;
-    Eigen::Matrix<float,6, 6> matV2;
+  if (iterCount == 0)
+  {
+    Eigen::Matrix<float, 1, 6> matE;
+    Eigen::Matrix<float, 6, 6> matV;
+    Eigen::Matrix<float, 6, 6> matV2;
 
-    Eigen::SelfAdjointEigenSolver< Eigen::Matrix<float,6,6> > esolver(matAtA);
+    Eigen::SelfAdjointEigenSolver<Eigen::Matrix<float, 6, 6>> esolver(matAtA);
     matE = esolver.eigenvalues().real();
     matV = esolver.eigenvectors().real();
     matV2 = matV;
 
     isDegenerate = false;
     float eignThre[6] = {10, 10, 10, 10, 10, 10};
-    for (int i = 5; i >= 0; i--) {
-      if (matE(0, i) < eignThre[i]) {
-        for (int j = 0; j < 6; j++) {
+    for (int i = 5; i >= 0; i--)
+    {
+      if (matE(0, i) < eignThre[i])
+      {
+        for (int j = 0; j < 6; j++)
+        {
           matV2(i, j) = 0;
         }
         isDegenerate = true;
-      } else {
+      }
+      else
+      {
         break;
       }
     }
     matP = matV.inverse() * matV2;
   }
 
-  if (isDegenerate) {
-    Eigen::Matrix<float,6,1> matX2;
+  if (isDegenerate)
+  {
+    Eigen::Matrix<float, 6, 1> matX2;
     matX2 = matX;
     matX = matP * matX2;
   }
@@ -1093,8 +1216,10 @@ bool FeatureAssociation::calculateTransformation(int iterCount) {
   transformCur[4] += matX(4, 0);
   transformCur[5] += matX(5, 0);
 
-  for (int i = 0; i < 6; i++) {
-    if (std::isnan(transformCur[i])) transformCur[i] = 0;
+  for (int i = 0; i < 6; i++)
+  {
+    if (std::isnan(transformCur[i]))
+      transformCur[i] = 0;
   }
 
   float deltaR = sqrt(pow(RAD2DEG * (matX(0, 0)), 2) +
@@ -1104,13 +1229,15 @@ bool FeatureAssociation::calculateTransformation(int iterCount) {
                       pow(matX(4, 0) * 100, 2) +
                       pow(matX(5, 0) * 100, 2));
 
-  if (deltaR < 0.1 && deltaT < 0.1) {
+  if (deltaR < 0.1 && deltaT < 0.1)
+  {
     return false;
   }
   return true;
 }
 
-void FeatureAssociation::checkSystemInitialization() {
+void FeatureAssociation::checkSystemInitialization()
+{
   pcl::PointCloud<PointType>::Ptr laserCloudTemp = cornerPointsLessSharp;
   cornerPointsLessSharp = laserCloudCornerLast;
   laserCloudCornerLast = laserCloudTemp;
@@ -1140,40 +1267,49 @@ void FeatureAssociation::checkSystemInitialization() {
   systemInitedLM = true;
 }
 
-void FeatureAssociation::updateTransformation() {
-  if (laserCloudCornerLastNum < 10 || laserCloudSurfLastNum < 100) return;
+void FeatureAssociation::updateTransformation()
+{
+  if (laserCloudCornerLastNum < 10 || laserCloudSurfLastNum < 100)
+    return;
 
-  for (int iterCount1 = 0; iterCount1 < 25; iterCount1++) {
+  for (int iterCount1 = 0; iterCount1 < 25; iterCount1++)
+  {
     laserCloudOri->clear();
     coeffSel->clear();
 
     findCorrespondingSurfFeatures(iterCount1);
 
-    if (laserCloudOri->points.size() < 10) continue;
-    if (calculateTransformationSurf(iterCount1) == false) break;
+    if (laserCloudOri->points.size() < 10)
+      continue;
+    if (calculateTransformationSurf(iterCount1) == false)
+      break;
   }
 
-  for (int iterCount2 = 0; iterCount2 < 25; iterCount2++) {
+  for (int iterCount2 = 0; iterCount2 < 25; iterCount2++)
+  {
     laserCloudOri->clear();
     coeffSel->clear();
 
     findCorrespondingCornerFeatures(iterCount2);
 
-    if (laserCloudOri->points.size() < 10) continue;
-    if (calculateTransformationCorner(iterCount2) == false) break;
+    if (laserCloudOri->points.size() < 10)
+      continue;
+    if (calculateTransformationCorner(iterCount2) == false)
+      break;
   }
 }
 
-void FeatureAssociation::integrateTransformation() {
+void FeatureAssociation::integrateTransformation()
+{
   float rx, ry, rz, tx, ty, tz;
   AccumulateRotation(transformSum[0], transformSum[1], transformSum[2],
                      -transformCur[0], -transformCur[1], -transformCur[2], rx,
                      ry, rz);
 
-  float x1 = cos(rz) * (transformCur[3] ) -
-             sin(rz) * (transformCur[4] );
-  float y1 = sin(rz) * (transformCur[3] ) +
-             cos(rz) * (transformCur[4] );
+  float x1 = cos(rz) * (transformCur[3]) -
+             sin(rz) * (transformCur[4]);
+  float y1 = sin(rz) * (transformCur[3]) +
+             cos(rz) * (transformCur[4]);
   float z1 = transformCur[5];
 
   float x2 = x1;
@@ -1192,10 +1328,12 @@ void FeatureAssociation::integrateTransformation() {
   transformSum[5] = tz;
 }
 
-void FeatureAssociation::adjustOutlierCloud() {
+void FeatureAssociation::adjustOutlierCloud()
+{
   PointType point;
   int cloudSize = outlierCloud->points.size();
-  for (int i = 0; i < cloudSize; ++i) {
+  for (int i = 0; i < cloudSize; ++i)
+  {
     point.x = outlierCloud->points[i].y;
     point.y = outlierCloud->points[i].z;
     point.z = outlierCloud->points[i].x;
@@ -1204,7 +1342,8 @@ void FeatureAssociation::adjustOutlierCloud() {
   }
 }
 
-void FeatureAssociation::publishOdometry() {
+void FeatureAssociation::publishOdometry()
+{
   tf2::Quaternion q;
   geometry_msgs::msg::Quaternion geoQuat;
   q.setRPY(transformSum[2], -transformSum[0], -transformSum[1]);
@@ -1213,7 +1352,6 @@ void FeatureAssociation::publishOdometry() {
   geoQuat.y = q.y();
   geoQuat.z = q.z();
   geoQuat.w = q.w();
-
 
   laserOdometry.header.stamp = cloudHeader.stamp;
   laserOdometry.pose.pose.orientation.x = -geoQuat.y;
@@ -1236,12 +1374,15 @@ void FeatureAssociation::publishOdometry() {
   tfBroadcaster->sendTransform(laserOdometryTrans);
 }
 
-void FeatureAssociation::publishCloud() {
+void FeatureAssociation::publishCloud()
+{
   sensor_msgs::msg::PointCloud2 laserCloudOutMsg;
 
   auto Publish = [&](rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr pub,
-                     const pcl::PointCloud<PointType>::Ptr &cloud) {
-    if (pub->get_subscription_count() != 0) {
+                     const pcl::PointCloud<PointType>::Ptr &cloud)
+  {
+    if (pub->get_subscription_count() != 0)
+    {
       pcl::toROSMsg(*cloud, laserCloudOutMsg);
       laserCloudOutMsg.header.stamp = cloudHeader.stamp;
       laserCloudOutMsg.header.frame_id = "camera";
@@ -1255,16 +1396,19 @@ void FeatureAssociation::publishCloud() {
   Publish(pubSurfPointsLessFlat, surfPointsLessFlat);
 }
 
-void FeatureAssociation::publishCloudsLast() {
+void FeatureAssociation::publishCloudsLast()
+{
 
   int cornerPointsLessSharpNum = cornerPointsLessSharp->points.size();
-  for (int i = 0; i < cornerPointsLessSharpNum; i++) {
+  for (int i = 0; i < cornerPointsLessSharpNum; i++)
+  {
     TransformToEnd(&cornerPointsLessSharp->points[i],
                    &cornerPointsLessSharp->points[i]);
   }
 
   int surfPointsLessFlatNum = surfPointsLessFlat->points.size();
-  for (int i = 0; i < surfPointsLessFlatNum; i++) {
+  for (int i = 0; i < surfPointsLessFlatNum; i++)
+  {
     TransformToEnd(&surfPointsLessFlat->points[i],
                    &surfPointsLessFlat->points[i]);
   }
@@ -1280,7 +1424,8 @@ void FeatureAssociation::publishCloudsLast() {
   laserCloudCornerLastNum = laserCloudCornerLast->points.size();
   laserCloudSurfLastNum = laserCloudSurfLast->points.size();
 
-  if (laserCloudCornerLastNum > 10 && laserCloudSurfLastNum > 100) {
+  if (laserCloudCornerLastNum > 10 && laserCloudSurfLastNum > 100)
+  {
     kdtreeCornerLast.setInputCloud(laserCloudCornerLast);
     kdtreeSurfLast.setInputCloud(laserCloudSurfLast);
   }
@@ -1288,13 +1433,16 @@ void FeatureAssociation::publishCloudsLast() {
   frameCount++;
   adjustOutlierCloud();
 
-  if (frameCount >= skipFrameNum + 1) {
+  if (frameCount >= skipFrameNum + 1)
+  {
     frameCount = 0;
     sensor_msgs::msg::PointCloud2 cloudTemp;
 
     auto Publish = [&](rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr pub,
-                       const pcl::PointCloud<PointType>::Ptr &cloud) {
-      if (pub->get_subscription_count() != 0) {
+                       const pcl::PointCloud<PointType>::Ptr &cloud)
+    {
+      if (pub->get_subscription_count() != 0)
+      {
         pcl::toROSMsg(*cloud, cloudTemp);
         cloudTemp.header.stamp = cloudHeader.stamp;
         cloudTemp.header.frame_id = "camera";
@@ -1308,12 +1456,15 @@ void FeatureAssociation::publishCloudsLast() {
   }
 }
 
-void FeatureAssociation::runFeatureAssociation() {
-  while (rclcpp::ok()) {
+void FeatureAssociation::runFeatureAssociation()
+{
+  while (rclcpp::ok())
+  {
     ProjectionOut projection;
     _input_channel.receive(projection);
 
-    if( !rclcpp::ok() ) break;
+    if (!rclcpp::ok())
+      break;
 
     //--------------
     outlierCloud = projection.outlier_cloud;
@@ -1331,10 +1482,11 @@ void FeatureAssociation::runFeatureAssociation() {
 
     extractFeatures();
 
-    publishCloud();  // cloud for visualization
+    publishCloud(); // cloud for visualization
 
     // Feature Association
-    if (!systemInitedLM) {
+    if (!systemInitedLM)
+    {
       checkSystemInitialization();
       continue;
     }
@@ -1345,12 +1497,13 @@ void FeatureAssociation::runFeatureAssociation() {
 
     publishOdometry();
 
-    publishCloudsLast();  // cloud to mapOptimization
+    publishCloudsLast(); // cloud to mapOptimization
 
     //--------------
     _cycle_count++;
 
-    if (static_cast<int>(_cycle_count) == _mapping_frequency_div) {
+    if (static_cast<int>(_cycle_count) == _mapping_frequency_div)
+    {
       _cycle_count = 0;
       AssociationOut out;
       out.cloud_corner_last.reset(new pcl::PointCloud<PointType>());
